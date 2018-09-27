@@ -2,7 +2,7 @@ pragma solidity ^0.4.0;
 
 /**
  * @title A simple RLP encoding library
- * @author Bakaoh 
+ * @author Bakaoh
  */
 library RLPEncode {
 
@@ -21,7 +21,7 @@ library RLPEncode {
         return mergeBytes(encodeLength(self.length, STRING_OFFSET), self);
     }
 
-    /** 
+    /**
      * @notice Encode address
      * @param self The address to encode
      * @return The RLP encoded address in bytes
@@ -37,7 +37,7 @@ library RLPEncode {
         return encodeBytes(b);
     }
 
-    /** 
+    /**
      * @notice Encode uint
      * @param self The uint to encode
      * @return The RLP encoded uint in bytes
@@ -46,7 +46,7 @@ library RLPEncode {
         return encodeBytes(toBinary(self));
     }
 
-    /** 
+    /**
      * @notice Encode int
      * @param self The int to encode
      * @return The RLP encoded int in bytes
@@ -55,7 +55,7 @@ library RLPEncode {
         return encodeUint(uint(self));
     }
 
-    /** 
+    /**
      * @notice Encode bool
      * @param self The bool to encode
      * @return The RLP encoded bool in bytes
@@ -129,8 +129,8 @@ library RLPEncode {
      */
     function toBinary(uint x) internal pure returns (bytes) {
         bytes memory b = new bytes(32);
-        assembly { 
-            mstore(add(b, 32), x) 
+        assembly {
+            mstore(add(b, 32), x)
         }
         for (uint i = 0; i < 32; i++) {
             if (b[i] != 0) {

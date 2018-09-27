@@ -9,7 +9,7 @@ library Merkle {
     /*
      * Internal function
      */
-    
+
     /**
      * @dev Checks that a leaf is actually in a Merkle tree.
      * @param _leaf Leaf to verify.

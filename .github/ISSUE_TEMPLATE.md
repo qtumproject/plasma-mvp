@@ -2,7 +2,7 @@
 See https://help.github.com/articles/basic-writing-and-formatting-syntax/ for help with formatting code.
 -->
 
-## Issue Type 
+## Issue Type
 <!-- Check one with "x" -->
 
 ```
