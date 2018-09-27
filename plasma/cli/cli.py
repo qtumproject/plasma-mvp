@@ -139,6 +139,41 @@ def withdrawdeposit(client, owner, blknum, amount):
     client.withdraw_deposit(owner, deposit_pos, amount)
     print("Submitted withdrawal")
 
+@cli.command()
+@click.argument('account', required=True)
+@click.pass_obj
+def finalize_exits(client, account):
+    client.finalize_exits(account)
+    print("Submitted finalizeExits")
+
+@cli.command()
+@click.argument('blknum', required=True, type=int)
+@click.argument('key', required=True)
+@click.pass_obj
+def confirm_sig(client, blknum, key):
+    utxo_id = blknum * 1000000000 + 10000 * 0 + 0
+
+    block = client_call(client.get_block, [blknum])
+    root = block.root
+    print("block root:", root)
+
+    tx = client_call(client.get_transaction, [utxo_id])
+
+    _key = utils.normalize_key(key)
+
+    confirmSig = confirm_tx(tx, root, _key)
+
+    print("confirm sig:", utils.encode_hex(confirmSig))
+
+@cli.command()
+@click.argument('blknum', required=True, type=int)
+@click.argument('confirm_sig_hex', required=True)
+@click.argument('account', required=True)
+@click.pass_obj
+def challenge_exit(client, blknum, confirm_sig_hex, account):
+    confirmSig = utils.decode_hex(confirm_sig_hex)
+    client.challenge_exit(blknum, confirmSig, account)
+    print("Submitted challenge exit")
 
 if __name__ == '__main__':
     cli()
