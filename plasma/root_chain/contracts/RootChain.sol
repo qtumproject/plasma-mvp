@@ -74,6 +74,8 @@ contract RootChain {
     }
 
 
+    event onlyOperatorLog(address _operator, address _msgSender);
+
     /*
      * Modifiers
      */
@@ -131,11 +133,14 @@ contract RootChain {
     function deposit()
         public
         payable
+        registered
     {
         // Only allow up to CHILD_BLOCK_INTERVAL deposits per child block.
         require(currentDepositBlock < CHILD_BLOCK_INTERVAL);
 
-        bytes32 root = keccak256(msg.sender, address(0), msg.value);
+        address _sender = recoveredAddress[msg.sender];
+
+        bytes32 root = keccak256(_sender, address(0), msg.value);
         uint256 depositBlock = getDepositBlock();
         plasmaBlocks[depositBlock] = PlasmaBlock({
             root: root,
@@ -143,7 +148,7 @@ contract RootChain {
         });
         currentDepositBlock = currentDepositBlock.add(1);
 
-        emit Deposit(msg.sender, depositBlock, address(0), msg.value);
+        emit Deposit(_sender, depositBlock, address(0), msg.value);
     }
 
     /**
@@ -154,15 +159,18 @@ contract RootChain {
      */
     function startDepositExit(uint256 _depositPos, address _token, uint256 _amount)
         public
+        registered
     {
         uint256 blknum = _depositPos / 1000000000;
 
         // Check that the given UTXO is a deposit.
         require(blknum % CHILD_BLOCK_INTERVAL != 0);
 
+        address _sender = recoveredAddress[msg.sender];
+
         // Validate the given owner and amount.
         bytes32 root = plasmaBlocks[blknum].root;
-        bytes32 depositHash = keccak256(msg.sender, _token, _amount);
+        bytes32 depositHash = keccak256(_sender, _token, _amount);
         require(root == depositHash);
 
         addExitToQueue(_depositPos, msg.sender, _token, _amount, plasmaBlocks[blknum].timestamp);
@@ -176,6 +184,7 @@ contract RootChain {
     function startFeeExit(address _token, uint256 _amount)
         public
         onlyOperator
+        registered
     {
         addExitToQueue(currentFeeExit, msg.sender, _token, _amount, block.timestamp + 1);
         currentFeeExit = currentFeeExit.add(1);
@@ -200,6 +209,8 @@ contract RootChain {
         uint256 txindex = (_utxoPos % 1000000000) / 10000;
         uint256 oindex = _utxoPos - blknum * 1000000000 - txindex * 10000;
 
+        address _sender = recoveredAddress[msg.sender];
+
         // Check the sender owns this UTXO.
         var exitingTx = _txBytes.createExitingTx(oindex);
         require(msg.sender == exitingTx.exitor);
@@ -207,10 +218,11 @@ contract RootChain {
         // Check the transaction was included in the chain and is correctly signed.
         bytes32 root = plasmaBlocks[blknum].root;
         bytes32 merkleHash = keccak256(keccak256(_txBytes), ByteUtils.slice(_sigs, 0, 130));
+
         require(Validate.checkSigs(keccak256(_txBytes), root, exitingTx.inputCount, _sigs));
         require(merkleHash.checkMembership(txindex, root, _proof));
 
-        addExitToQueue(_utxoPos, exitingTx.exitor, exitingTx.token, exitingTx.amount, plasmaBlocks[blknum].timestamp);
+        addExitToQueue(_utxoPos, msg.sender, exitingTx.token, exitingTx.amount, plasmaBlocks[blknum].timestamp);
     }
 
     /**
@@ -238,10 +250,10 @@ contract RootChain {
         var txHash = keccak256(_txBytes);
         var confirmationHash = keccak256(txHash, root);
         var merkleHash = keccak256(txHash, _sigs);
-        address owner = exits[eUtxoPos].owner;
+        address recoveredOwner = recoveredAddress[exits[eUtxoPos].owner];
 
         // Validate the spending transaction.
-        require(owner == ECRecovery.recover(confirmationHash, _confirmationSig));
+        require(recoveredOwner == ECRecovery.recover(confirmationHash, _confirmationSig));
         require(merkleHash.checkMembership(txindex, root, _proof));
 
         // Delete the owner but keep the amount to prevent another exit.
@@ -360,6 +372,7 @@ contract RootChain {
         uint256 _created_at
     )
         private
+        registered
     {
         // Check that we're exiting a known token.
         require(exitsQueues[_token] != address(0));
@@ -369,7 +382,7 @@ contract RootChain {
         require(exits[_utxoPos].amount == 0);
 
         // Calculate priority.
-        uint256 exitableAt = Math.max(_created_at + 2 weeks, block.timestamp + 1 weeks);
+        uint256 exitableAt = Math.max(_created_at + 15 seconds, block.timestamp + 30 seconds);
         PriorityQueue queue = PriorityQueue(exitsQueues[_token]);
         queue.insert(exitableAt, _utxoPos);
 
@@ -379,6 +392,22 @@ contract RootChain {
             amount: _amount
         });
 
-        emit ExitStarted(msg.sender, _utxoPos, _token, _amount);
+        address _sender = recoveredAddress[msg.sender];
+        emit ExitStarted(_sender, _utxoPos, _token, _amount);
+    }
+
+    event Register(address _sender, address _recoveredAddr);
+
+    mapping (address => address) public recoveredAddress;
+
+    function register(bytes32 _hash, bytes _sig) public {
+        address _recoveredAddr = ECRecovery.recover(_hash, _sig);
+        recoveredAddress[msg.sender] = _recoveredAddr;
+        emit Register(msg.sender, _recoveredAddr);
+    }
+
+    modifier registered() {
+        require(recoveredAddress[msg.sender] != address(0));
+        _;
     }
 }

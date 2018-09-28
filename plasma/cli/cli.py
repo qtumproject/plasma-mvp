@@ -5,6 +5,7 @@ from plasma_core.transaction import Transaction
 from plasma_core.utils.utils import confirm_tx
 from plasma.client.client import Client
 from plasma.client.exceptions import ChildChainServiceError
+from plasma_core.utils.address import address_to_hex
 
 
 CONTEXT_SETTINGS = dict(
@@ -80,8 +81,10 @@ def sendtx(client,
     if key2:
         tx.sign2(utils.normalize_key(key2))
 
-    client_call(client.apply_transaction, [tx], "Sent transaction")
+    print("key1:", key1)
+    print("sender1:", address_to_hex(tx.sender1))
 
+    client_call(client.apply_transaction, [tx], "Sent transaction")
 
 @cli.command()
 @click.argument('key', required=True)
@@ -174,6 +177,15 @@ def challenge_exit(client, blknum, confirm_sig_hex, account):
     confirmSig = utils.decode_hex(confirm_sig_hex)
     client.challenge_exit(blknum, confirmSig, account)
     print("Submitted challenge exit")
+
+@cli.command()
+@click.argument('sender', required=True)
+@click.argument('key', required=True)
+@click.pass_obj
+def register(client, sender, key):
+    _key = utils.decode_hex(key)
+    client.register(sender, _key)
+    print("Registered")
 
 if __name__ == '__main__':
     cli()

@@ -10,7 +10,7 @@ from plasma_core.block import Block
 from plasma_core.transaction import Transaction
 
 root_chain = Deployer().get_contract_at_address("RootChain", CONTRACT_ADDRESS, concise=False)
-child_chain = ChildChain(AUTHORITY['address'], root_chain)
+child_chain = ChildChain(AUTHORITY['address'], AUTHORITY['ecrecoveredAddr'], root_chain)
 
 
 @Request.application

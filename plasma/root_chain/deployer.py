@@ -3,6 +3,7 @@ import os
 from solc import compile_standard
 from web3.contract import ConciseContract
 from web3 import Web3, HTTPProvider
+from plasma_core.constants import AUTHORITY
 
 OWN_DIR = os.path.dirname(os.path.realpath(__file__))
 CONTRACTS_DIR = OWN_DIR + '/contracts'
@@ -13,6 +14,8 @@ class Deployer(object):
 
     def __init__(self, provider=HTTPProvider('http://localhost:8545')):
         self.w3 = Web3(provider)
+        self.w3.eth.setGasPriceStrategy(value_based_gas_price_strategy)
+
 
     @staticmethod
     def get_solc_input():
@@ -32,6 +35,7 @@ class Deployer(object):
                 } for r, d, f in os.walk(CONTRACTS_DIR) for file_name in f
             },
             'settings': {
+                'evmVersion': 'homestead',
                 'outputSelection': {
                     "*": {
                         "": [
@@ -99,7 +103,7 @@ class Deployer(object):
 
         return abi, bytecode
 
-    def deploy_contract(self, contract_name, gas=5000000, args=(), concise=True):
+    def deploy_contract(self, contract_name, gas=40000000, args=(), concise=True):
         """Deploys a contract to the given Ethereum network using Web3
 
         Args:
@@ -119,7 +123,7 @@ class Deployer(object):
 
         # Get transaction hash from deployed contract
         tx_hash = contract.deploy(transaction={
-            'from': self.w3.eth.accounts[0],
+            'from': AUTHORITY['address'],
             'gas': gas
         }, args=args)
 
@@ -129,6 +133,7 @@ class Deployer(object):
 
         contract_instance = self.w3.eth.contract(address=contract_address, abi=abi)
 
+        print("root chain address: ", contract_address)
         print("Successfully deployed {0} contract!".format(contract_name))
 
         return ConciseContract(contract_instance) if concise else contract_instance
@@ -150,3 +155,6 @@ class Deployer(object):
         contract_instance = self.w3.eth.contract(abi=abi, address=address)
 
         return ConciseContract(contract_instance) if concise else contract_instance
+
+def value_based_gas_price_strategy(web3, transaction_params):
+    return 100

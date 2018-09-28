@@ -17,3 +17,7 @@ contract_data/
 
 *.pyc
 build/
+
+/.qtum
+/supervisord.*
+/plasma_core/contract_addr.py

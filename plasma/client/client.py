@@ -9,7 +9,8 @@ from .child_chain_service import ChildChainService
 from plasma_core.utils.utils import confirm_tx
 from plasma_core.utils.merkle.fixed_merkle import FixedMerkle
 from eth_utils import address
-
+from ethereum.utils import sha3
+from plasma_core.utils.signatures import sign
 
 class Client(object):
 
@@ -39,7 +40,7 @@ class Client(object):
         return transaction
 
     def deposit(self, amount, owner):
-        self.root_chain.deposit(transact={'from': owner, 'value': amount})
+        self.root_chain.deposit(transact={'from': owner, 'value': amount, 'gas': 40000000})
 
     def apply_transaction(self, transaction):
         self.child_chain.apply_transaction(transaction)
@@ -56,10 +57,11 @@ class Client(object):
         else:
             _from = address.to_checksum_address('0x'+tx.newowner2.hex())
 
-        self.root_chain.startExit(utxo_pos, encoded_transaction, proof, sigs, transact={'from': _from})
+        self.root_chain.startExit(utxo_pos, encoded_transaction, proof, sigs, transact={'from': _from, 'gas': 40000000})
 
     def withdraw_deposit(self, owner, deposit_pos, amount):
-        self.root_chain.startDepositExit(deposit_pos, NULL_ADDRESS, amount, transact={'from': owner})
+        resp = self.root_chain.startDepositExit(deposit_pos, NULL_ADDRESS, amount, transact={'from': owner, 'gas': 40000000})
+        print("withdraw_deposit resp: ", resp)
 
     def get_transaction(self, utxo_id):
         encoded_transaction = self.child_chain.get_transaction(utxo_id)
@@ -77,7 +79,7 @@ class Client(object):
         return self.child_chain.get_current_block_num()
 
     def finalize_exits(self, account):
-        self.root_chain.finalizeExits(NULL_ADDRESS, transact={'from': account})
+        self.root_chain.finalizeExits(NULL_ADDRESS, transact={'from': account, 'gas': 40000000})
 
     def challenge_exit(self, blknum, confirmSig, account):
         oindex = 0
@@ -91,4 +93,10 @@ class Client(object):
 
         sigs = tx.sig1 + tx.sig2
 
-        return self.root_chain.challengeExit(utxo_pos, oindex, tx_bytes, proof, sigs, confirmSig, transact={'from': account})
+        return self.root_chain.challengeExit(utxo_pos, oindex, tx_bytes, proof, sigs, confirmSig, transact={'from': account, 'gas': 40000000})
+
+    def register(self, sender, privateKey):
+        msg = "hi"
+        messageHash = sha3(msg)
+        sig = sign(messageHash, privateKey)
+        self.root_chain.register(messageHash, sig, transact={'from': sender, 'gas': 40000000})
