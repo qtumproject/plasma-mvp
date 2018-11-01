@@ -1,253 +1,251 @@
-# Plasma MVP
+# QTUM Plasma MVP
 
-We're implementing [Minimum Viable Plasma](https://ethresear.ch/t/minimal-viable-plasma/426). This repository represents a work in progress and will undergo large-scale modifications as requirements change.
+A port of Plasma MVP to QTUM. It is based on:
 
-## Overview
+- [Minimum Viable Plasma](https://ethresear.ch/t/minimal-viable-plasma/426)
+- [Omisego Plasma MVP](https://github.com/omisego/plasma-mvp)
 
-Plasma MVP is split into four main parts: `root_chain`, `child_chain`, `client`, and `cli`. Below is an overview of each sub-project.
+ETH RPC compatibility is provided by [Janus]()
 
-### root_chain
+## Dependencies
 
-`root_chain` represents the Plasma contract to be deployed to the root blockchain. In our case, this contract is written in Solidity and is designed to be deployed to Ethereum. `root_chain` also includes a compilation/deployment script.
+Docker is required to run qtumd and the ETH RPC compatibility layer.
 
-`RootChain.sol` is based off of the Plasma design specified in [Minimum Viable Plasma](https://ethresear.ch/t/minimal-viable-plasma/426). Currently, this contract allows a single authority to publish child chain blocks to the root chain. This is *not* a permanent design and is intended to simplify development of more critical components in the short term.
-
-### child_chain
-
-`child_chain` is a Python implementation of a Plasma MVP child chain client. It's useful to think of `child_chain` as analogous to [Parity](https://www.parity.io) or [Geth](https://geth.ethereum.org). This component manages a store of `Blocks` and `Transactions` that are updated when events are fired in the root contract.
-
-`child_chain` also contains an RPC server that enables client interactions. By default, this server runs on port `8546`.
-
-### client
-
-`client` is a simple Python wrapper of the RPC API exposed by `child_chain`, similar to `Web3.py` for Ethereum. You can use this client to write Python applications that interact with this Plasma chain.
-
-### cli
-
-`cli` is a simple Python application that uses `client` to interact with `child_chain`, via the command line. A detailed documentation of `cli` is available [here](#cli-documentation).
-
-## Getting Started
-
-### Dependencies
-
-This project has a few pre-installation dependencies.
-
-#### [Solidity](https://solidity.readthedocs.io/en/latest/installing-solidity.html)
-
-Mac:
-```sh
-brew update
-brew upgrade
-brew tap ethereum/ethereum
-brew install solidity
-```
-
-Linux:
-```sh
-sudo add-apt-repository ppa:ethereum/ethereum
-sudo apt-get update
-sudo apt-get install solc
-```
-
-Windows:
-
-Follow [this guide](https://solidity.readthedocs.io/en/latest/installing-solidity.html#prerequisites-windows)
-
-
-#### [Python 3.2+](https://www.python.org/downloads/)
-
-Mac:
-```sh
-brew install python
-```
-
-Linux:
-```sh
-sudo apt-get install software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get update
-sudo apt-get install python3
-```
-
-Windows:
-```sh
-choco install python
-```
-
-#### [Ganache CLI 6.1.8+](https://github.com/trufflesuite/ganache-cli)
-
-### Installation
-
-Note: we optionally recommend using something like [`virtualenv`](https://pypi.python.org/pypi/virtualenv) in order to create an isolated Python environment:
+Check your Python version:
 
 ```
-$ virtualenv env -p python3
+python --version
+Python 3.6.5
 ```
 
-Fetch and install the project's dependencies with:
+Python 3.5 or above should work. But we recommend that you use [pyenv](https://github.com/pyenv/pyenv), and run version 3.6.5.
+
+Install Python dependencies:
 
 ```
-$ make
+python setup.py install
 ```
 
-### Testing
+# Running QTUM Plasma MVP
 
-Before you run tests, make sure you have an Ethereum client running and an JSON RPC API exposed on port `8545`. We recommend using `ganache-cli` to accomplish this when running tests. Start it with the command-line argument `-m="plasma_mvp"`.
-
-Project tests can be found in the `tests/` folder. Run tests with:
+A docker image is prepared, which contains qtumd, as well as the ETH RPC compatibility layer.
 
 ```
-$ make test
+docker run --rm \
+    --name qtumportal \
+    -v `pwd`:/dapp \
+    -p 3889:3889 \
+    -p 8545:23889 \
+    dcb9/qtumportal
 ```
 
-If you're contributing to this project, make sure you also install [`flake8`](https://pypi.org/project/flake8/) and lint your work:
+- 3889 exposes the original QTUM RPC.
+- 8545 exposes the ETH compatible RPC.
+
+Next, setup an alias to access the `qtum-cli` tool:
 
 ```
-$ make lint
+alias qcli='docker exec -it qtumportal qcli'
 ```
 
-### Starting Plasma
+Mine 600 blocks to provide an initial balance for testing:
 
-The fastest way to start playing with our Plasma MVP is by starting up `ganache-cli`, deploying everything locally, and running our CLI. Full documentation for the CLI is available [here](#cli-documentation).
+```
+qcli generate 600
+```
+
+## Setup Plasma
+
+- Create two Plasma users.
+- Deploy the root contracts on QTUM.
+- Registering the Plasma users.
+- Run the child chain.
+
+### Create Users
+
+We are going to:
+
+- Import private keys.
+- Fund users.
+
+The private key for the first user. This user also acts as the admin, used to deploy the Plasma contracts, as well as to submit the child-chain blocks.
+
+```
+# Private Key
+00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
+
+# QTUM Address Hex
+0x7926223070547D2D15b2eF5e7383E541c338FfE9
+
+# QTUM Address Base58
+qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW
+
+# ETH Address
+0x6Fd56E72373a34bA39Bf4167aF82e7A411BFED47
+```
+
+Note that ETH and QTUM addresses for the same private key are different, and we need to know both. When getting the signer of a signature, the [ecrecover function returns the address in ETH format](https://github.com/qtumproject/cpp-eth-qtum/issues/27).
+
+The private key for second user (normal Plasma user without admin rights):
+
+```
+# Private Key
+7826adc1127b8cf34c47b2c7909904109d7fe404be04838e323082981c51340e
+
+# QTUM Address Hex
+0x2352be3Db3177F0A07Efbe6DA5857615b8c9901D
+
+# QTUM Address Base58
+qLn9vqbr2Gx3TsVR9QyTVB5mrMoh4x43Uf
+
+# ETH Address
+0x0CF28703ECc9C7dB28F3d496e41666445b0A4EAF
+```
+
+Import these keys, and fund the accounts with 500 QTUM each:
 
 ```bash
-$ ganache-cli -m=plasma_mvp # Start ganache-cli
-$ make root-chain           # Deploy the root chain contract
-$ make child-chain          # Run our child chain and server
+# Admin User
+qcli importprivkey \
+    cMbgxCJrTYUqgcmiC1berh5DFrtY1KeU4PXZ6NZxgenniF1mXCRk
+docker exec -it qtumportal \
+    solar prefund qUbxboqjBRp96j3La8D1RYkyqx5uQbJPoW 50000
+
+# Normal User
+qcli importprivkey \
+    cRcG1jizfBzHxfwu68aMjhy78CpnzD9gJYZ5ggDbzfYD3EQfGUDZ
+docker exec -it qtumportal \
+    solar prefund qLn9vqbr2Gx3TsVR9QyTVB5mrMoh4x43Uf 50000
 ```
 
-## CLI Documentation
+## Deploy Plasma Contracts (Root Chain)
 
-`omg` is a simple Plasma CLI that enables interactions with the child chain. Full documentation is provided below.
-
-### `help`
-
-#### Description
-
-Shows a list of available commands.
-
-#### Usage
+We'll use the admin user to create the contracts.
 
 ```
---help
+make root-chain
 ```
 
-### `deposit`
-
-#### Description
-
-Creates a deposit transaction and submits it to the child chain.
-
-#### Usage
+If successful, the address of the contract is writen to the file `plasma_core/contract_addr.py`:
 
 ```
-deposit <amount> <address>
+cat plasma_core/contract_addr.py
+ADDR="0x2208595067499452580F54668104Ffb1b8755d79"
 ```
 
-#### Example
+## Registering Users
+
+The original Plasma MVP does not require users to pre-register. But we because of the [ecrecover issue](https://github.com/qtumproject/cpp-eth-qtum/issues/27) mentioned above, the smart contract needs way to associate QTUM address to ETH address.
+
+To register the two users:
 
 ```
-deposit 100 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7
+omg register 0x7926223070547D2D15b2eF5e7383E541c338FfE9 00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
+
+omg register 0x2352be3Db3177F0A07Efbe6DA5857615b8c9901D 7826adc1127b8cf34c47b2c7909904109d7fe404be04838e323082981c51340e
 ```
 
-### `sendtx`
+## Run The Child Chain
 
-#### Description
-
-Creates a transaction and submits it to the child chain.
-
-#### Usage
+The root-chain is now ready. Let's start the child-chain, a Python server:
 
 ```
-sendtx <blknum1> <txindex1> <oindex1> <blknum2> <txindex2> <oindex2> <cur12> <newowner1> <amount1> <newowner2> <amount2> <key1> [<key2>]
+make child-chain
 ```
 
-#### Example
+## Deposit Fund To Plasma
+
+We use the first user (the admin) to deposit 100 QTUM into the Plasma Root Chain:
 
 ```
-sendtx 1 0 0 0 0 0 0x0 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7 50 0x4B3eC6c9dC67079E82152d6D55d8dd96a8e6AA26 45 3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304
+omg deposit 10000000000 0x7926223070547D2D15b2eF5e7383E541c338FfE9
+
+Deposited 10000000000 to 0x7926223070547D2D15b2eF5e7383E541c338FfE9
 ```
 
-### `submitblock`
-
-#### Description
-
-Signs and submits the current block to the root contract.
-
-#### Usage
+You should see the following log output from the child-chain, when the deposit has been confirmed by the root-chain:
 
 ```
-submitblock <key>
+apply_deposit AttributeDict({'depositor': '0x6Fd56E72373a34bA39Bf4167aF82e7A411BFED47', 'depositBlock': 1, 'token': '0x0000000000000000000000000000000000000000', 'amount': 10000000000})
 ```
 
-#### Example
+The deposit created a corresponding UTXO on the side chain. Plasma MVP uses a simplified UTXO, such that there can be two VINs and two VOUTs.
 
-```
-submitblock 3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304
-```
+The `omg sendtx` is a bit unfriendly, in that it requires many arguments to create a transaction. We are going to use the deposit UTXO as VIN1, leave VIN2 empty, and create two VOUTs of 50 QTUMs each, one to the receiver, and another as change back to the sender.
 
-### `withdraw`
-
-#### Description
-
-Creates an exit transaction for the given UTXO.
-
-#### Usage
-
-```
-withdraw <blknum> <txindex> <oindex> <key1> [<key2>]
-```
-
-#### Example
-
-```
-withdraw 1000 0 0 3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304
+```bash
+omg sendtx \
+    `# vin 1 (blknum, txindex, oindex)` \
+    1 0 0 \
+    `# vin 2 (blknum, txindex, oindex)` \
+    0 0 0 \
+    `# The type of the (ERC20) token. 0x0 is the "native" token, which is ETH or QTUM.` \
+    0x0 \
+    `# vout 1` \
+    0x7926223070547D2D15b2eF5e7383E541c338FfE9 5000000000 \
+    `# vout 1` \
+    0x2352be3Db3177F0A07Efbe6DA5857615b8c9901D 5000000000 \
+    `# Signing key of sender` \
+    00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
 ```
 
-### `withdrawdeposit`
+This transaction occurs on Plasma, and is instanteneus. The admin, however, needs to submit the child chain block's merkle root to the root-chain to publish" a Plasma tx for everyone to see:
 
-#### Description
-
-Withdraws from a deposit.
-
-#### Usage
-
-```
-withdrawdeposit <owner> <blknum> <amount>
+```bash
+# submit a block with the admin's signing key
+omg submitblock \
+    00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
 ```
 
-#### Example
+The child-chain should output:
 
-```
-withdrawdeposit 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7 1 100
-```
-
-
-## CLI Example
-
-Let's play around a bit:
-
-1. Deploy the root chain contract and start the child chain as per [Starting Plasma](#starting-plasma).
-
-2. Start by depositing:
-```
-omg deposit 100 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7
+```yaml
+utxo_id: 1000000000
+blknum: 1
+from: 0x7926223070547D2D15b2eF5e7383E541c338FfE9
+block.merkle.root: a2540bf5fef7c09ab916fabd3607385eba19468e6a6e09fced27400254b6ac9b
+len: 32
+data: 6bd3991cdfe4d2492b262e178370b74ae7c8eeacc7acb052cd5820e62ac548fa
 ```
 
-3. Send a transaction:
-```
-omg sendtx 1 0 0 0 0 0 0x0 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7 50 0x4B3eC6c9dC67079E82152d6D55d8dd96a8e6AA26 45 3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304
-```
+## Withdraw From Chain
 
-4.  Submit the block:
-```
-omg submitblock 3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304
-```
+To user 2 to withdraw a VOUT from the child chain, it is necessary that user 1 had sent one [confirmation signature](https://ethresear.ch/t/why-do-dont-we-need-two-phase-sends-plus-confirmation/1866/14) for the each VIN in that transaction.
 
-5. Withdraw the original deposit (this is a double spend!):
+From the `sendtx` above, there are two VOUTs on block 1000.
+
+We withdraw the VOUT designated by `1000 0 0` (block 1000, tx 0, vout 0), which belongs to user 1:
 
 ```
-omg withdrawdeposit 0xfd02EcEE62797e75D86BCff1642EB0844afB28c7 1 100
+omg withdraw \
+    1000 0 0 \
+    `# Use user1's key to create a confirmation sig` \
+    00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
 ```
 
-Note: The functionality to challenge double spends from the cli is still being worked on.
+Once a withdraw request is on-chain, we need to wait for a challenge period before it could be finalized. For testing purpses, the challenge period is 30 seconds, so we just wait:
+
+```
+sleep 30
+```
+
+After the challenge period, call `finalize` to settle all valid exits on chain:
+
+```
+omg finalize_exits
+```
+
+We should see that because a 500 QTUM UTXO had been exited, the contract balance is now decremented:
+
+```
+bash scripts/getbalance.sh
+  "balance": 5000000000,
+```
+
+If user 2 also want to exit, the process is similar:
+
+```
+omg withdraw 1000 0 1 00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35
+```
+
+Note that the CLI tool is just for testing purposes. Normally user 2 would not know the private key of user 1, and would instead receive the confirmation signature directly.
