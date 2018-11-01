@@ -5,7 +5,7 @@ A port of Plasma MVP to QTUM. It is based on:
 - [Minimum Viable Plasma](https://ethresear.ch/t/minimal-viable-plasma/426)
 - [Omisego Plasma MVP](https://github.com/omisego/plasma-mvp)
 
-ETH RPC compatibility is provided by [Janus]()
+ETH RPC compatibility is provided by [Janus](https://github.com/qtumproject/janus)
 
 ## Dependencies
 
