@@ -16,6 +16,8 @@ setup(
     packages=find_packages(exclude=('tests')),
     include_package_data=True,
     install_requires=[
+        'eth-typing<2.0.0',
+        'toolz==0.9.0',
         'ethereum==2.3.0',
         'web3==4.5.0',
         'werkzeug==0.14.1',

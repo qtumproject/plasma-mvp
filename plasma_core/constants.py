@@ -1,10 +1,12 @@
 from ethereum import utils as u
+from plasma_core.contract_addr import ADDR
 
-CONTRACT_ADDRESS = '0xA3B2a1804203b75b494028966C0f62e677447A39'
+CONTRACT_ADDRESS = ADDR
 
 AUTHORITY = {
-    'address': '0xfd02EcEE62797e75D86BCff1642EB0844afB28c7',
-    'key': u.normalize_key(b'3bb369fecdc16b93b99514d8ed9c2e87c5824cf4a6a98d2e8e91b7dd0c063304')
+    'address': '0x7926223070547D2D15b2eF5e7383E541c338FfE9',
+    'ecrecoveredAddr': '0x6Fd56E72373a34bA39Bf4167aF82e7A411BFED47',
+    'key': u.normalize_key(b'00821d8c8a3627adc68aa4034fea953b2f5da553fab312db3fa274240bd49f35')
 }
 
 ACCOUNTS = [

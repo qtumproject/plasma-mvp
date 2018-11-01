@@ -10,7 +10,7 @@ import "./SafeMath.sol";
 contract PriorityQueue {
     using SafeMath for uint256;
 
-    /* 
+    /*
      *  Storage
      */
 

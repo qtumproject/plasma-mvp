@@ -11,7 +11,7 @@ help:
 
 .PHONY: root-chain
 root-chain:
-	python deployment.py
+	sh ./scripts/root-chain.sh
 
 .PHONY: child-chain
 child-chain:

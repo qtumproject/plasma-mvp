@@ -22,7 +22,7 @@ library RLP {
     * @param item RLP encoded bytes
     */
     function toRlpItem(bytes memory item) internal pure returns (RLPItem memory) {
-        if (item.length == 0) 
+        if (item.length == 0)
             return RLPItem(0, 0);
 
         uint memPtr;
@@ -46,7 +46,7 @@ library RLP {
         uint dataLen;
         for (uint i = 0; i < items; i++) {
             dataLen = _itemLength(memPtr);
-            result[i] = RLPItem(dataLen, memPtr); 
+            result[i] = RLPItem(dataLen, memPtr);
             memPtr = memPtr + dataLen;
         }
     }
@@ -107,7 +107,7 @@ library RLP {
 
         else if (byte0 < LIST_LONG_START) {
             return byte0 - LIST_SHORT_START + 1;
-        } 
+        }
 
         else {
             assembly {
@@ -127,7 +127,7 @@ library RLP {
             byte0 := byte(0, mload(memPtr))
         }
 
-        if (byte0 < STRING_SHORT_START) 
+        if (byte0 < STRING_SHORT_START)
             return 0;
         else if (byte0 < STRING_LONG_START || (byte0 >= LIST_SHORT_START && byte0 < LIST_LONG_START))
             return 1;

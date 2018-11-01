@@ -12,7 +12,7 @@ library ECRecovery {
 
     /**
      * @dev Recover signer address from a message by using their signature.
-     * @param _hash Hash of the signed message 
+     * @param _hash Hash of the signed message
      * @param _sig Signature over the signed message.
      * @return Address that signed the hash.
      */

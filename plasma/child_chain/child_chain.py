@@ -2,14 +2,15 @@ from plasma_core.block import Block
 from plasma_core.chain import Chain
 from plasma_core.utils.transactions import get_deposit_tx, encode_utxo_id
 from .root_event_listener import RootEventListener
+from ethereum import utils
 
 
 class ChildChain(object):
 
-    def __init__(self, operator, root_chain):
+    def __init__(self, operator, operatorRecoveredAddr, root_chain):
         self.operator = operator
         self.root_chain = root_chain
-        self.chain = Chain(self.operator)
+        self.chain = Chain(operatorRecoveredAddr)
         self.current_block = Block(number=self.chain.next_child_block)
 
         # Listen for events
@@ -27,6 +28,7 @@ class ChildChain(object):
         owner = event_args['depositor']
         amount = event_args['amount']
         blknum = event_args['depositBlock']
+        print("apply_deposit", event_args)
 
         deposit_tx = get_deposit_tx(owner, amount)
         deposit_block = Block([deposit_tx], number=blknum)
@@ -39,9 +41,16 @@ class ChildChain(object):
 
     def submit_block(self, block):
         self.chain.add_block(block)
-        self.root_chain.transact({
-            'from': self.operator
+        print("from: ", self.operator)
+        print("block.merkle.root:", utils.encode_hex(block.merkle.root))
+        print("len:", len(block.merkle.root))
+
+        data = self.root_chain.transact({
+            'from': self.operator,
+            'gas': 40000000
         }).submitBlock(block.merkle.root)
+
+        print("data:", utils.encode_hex(data))
         self.current_block = Block(number=self.chain.next_child_block)
 
     def get_transaction(self, tx_id):

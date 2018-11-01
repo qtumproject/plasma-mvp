@@ -5,6 +5,7 @@ from plasma_core.transaction import Transaction
 from plasma_core.utils.utils import confirm_tx
 from plasma.client.client import Client
 from plasma.client.exceptions import ChildChainServiceError
+from plasma_core.utils.address import address_to_hex
 
 
 CONTEXT_SETTINGS = dict(
@@ -80,8 +81,10 @@ def sendtx(client,
     if key2:
         tx.sign2(utils.normalize_key(key2))
 
-    client_call(client.apply_transaction, [tx], "Sent transaction")
+    print("key1:", key1)
+    print("sender1:", address_to_hex(tx.sender1))
 
+    client_call(client.apply_transaction, [tx], "Sent transaction")
 
 @cli.command()
 @click.argument('key', required=True)
@@ -115,7 +118,6 @@ def withdraw(client,
 
     # Create a Merkle proof
     tx = block.transaction_set[txindex]
-    block.merklize_transaction_set()
     proof = block.merkle.create_membership_proof(tx.merkle_hash)
 
     # Create the confirmation signatures
@@ -140,6 +142,50 @@ def withdrawdeposit(client, owner, blknum, amount):
     client.withdraw_deposit(owner, deposit_pos, amount)
     print("Submitted withdrawal")
 
+@cli.command()
+@click.argument('account', required=True)
+@click.pass_obj
+def finalize_exits(client, account):
+    client.finalize_exits(account)
+    print("Submitted finalizeExits")
+
+@cli.command()
+@click.argument('blknum', required=True, type=int)
+@click.argument('key', required=True)
+@click.pass_obj
+def confirm_sig(client, blknum, key):
+    utxo_id = blknum * 1000000000 + 10000 * 0 + 0
+
+    block = client_call(client.get_block, [blknum])
+    root = block.root
+    print("block root:", root)
+
+    tx = client_call(client.get_transaction, [utxo_id])
+
+    _key = utils.normalize_key(key)
+
+    confirmSig = confirm_tx(tx, root, _key)
+
+    print("confirm sig:", utils.encode_hex(confirmSig))
+
+@cli.command()
+@click.argument('blknum', required=True, type=int)
+@click.argument('confirm_sig_hex', required=True)
+@click.argument('account', required=True)
+@click.pass_obj
+def challenge_exit(client, blknum, confirm_sig_hex, account):
+    confirmSig = utils.decode_hex(confirm_sig_hex)
+    client.challenge_exit(blknum, confirmSig, account)
+    print("Submitted challenge exit")
+
+@cli.command()
+@click.argument('sender', required=True)
+@click.argument('key', required=True)
+@click.pass_obj
+def register(client, sender, key):
+    _key = utils.decode_hex(key)
+    client.register(sender, _key)
+    print("Registered")
 
 if __name__ == '__main__':
     cli()
